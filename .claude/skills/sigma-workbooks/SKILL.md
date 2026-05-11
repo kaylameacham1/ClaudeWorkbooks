@@ -26,6 +26,12 @@ Deployment workflows (version control, git-based promotion) are out of scope.
 
 The reference is feature-sliced — don't read every file up-front. The index below has two parts: **specification** (what a workbook spec IS) and **workflows** (how to take a spec through its lifecycle).
 
+### Design Guidelines
+
+| File | When to load |
+|------|--------------|
+| `reference/design-guidelines.md` | **Always — load before drafting any dashboard spec.** Defines required page structure (hidden Data tab), controls row layout, KPI container with rounded edges, chart placement, and the mandatory 3-step POST → GET → PUT workflow for layout. |
+
 ### Specification Index
 
 | File | When to load |
