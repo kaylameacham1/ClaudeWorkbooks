@@ -1,0 +1,81 @@
+# Layout
+
+The optional top-level `layout` field is an XML string that positions elements on each page using a CSS-grid-like model. Omit `layout` to get Sigma's default auto-layout. Provide it for precise multi-element dashboard composition.
+
+## Shape
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<Page type="grid" gridTemplateColumns="repeat(24, 1fr)" gridTemplateRows="auto" id="<pageId>">
+  <GridContainer elementId="<containerId>" type="grid" gridColumn="1 / 25" gridRow="1 / 4"
+                 gridTemplateColumns="repeat(24, 1fr)" gridTemplateRows="auto">
+    <LayoutElement elementId="<childId>" gridColumn="1 / 13" gridRow="1 / 4"/>
+  </GridContainer>
+  <LayoutElement elementId="<elementId>" gridColumn="1 / 25" gridRow="4 / 16"/>
+</Page>
+```
+
+Key points:
+- Each `<Page id>` must match a `pages[].id`.
+- Each `<LayoutElement elementId>` or `<GridContainer elementId>` must match an element on that page.
+- `gridColumn` / `gridRow`: standard CSS grid line syntax (`start / end`). The default grid is 24 columns wide.
+- Multiple `<Page>` blocks at the top level, one per workbook page.
+
+## `<GridContainer>` vs `<LayoutElement>`
+
+> ⚠️ **Silent failure:** use `<GridContainer>` for any tag that has child layout elements nested inside it. `<LayoutElement type="grid">` with children **parses successfully as a leaf node and the children are silently dropped** — no error is returned, the elements just don't appear on the page. Every container that wraps other elements must be a `<GridContainer>`.
+
+Put another way:
+- `<LayoutElement elementId="X" .../>` — **leaf**. Positions a single element. No children.
+- `<GridContainer elementId="X" ...>...</GridContainer>` — **container**. Wraps child `<LayoutElement>`s inside its own inner grid.
+
+## `gridTemplateRows`: keep it `"auto"`
+
+> **Silent normalization:** `gridTemplateRows` is accepted on `PUT` with any value but is normalized back to `"auto"` on `GET`. Writing `gridTemplateRows="1fr"` (or `"100px"`, `"repeat(3, 1fr)"`, etc.) on a `<Page>` or `<GridContainer>` doesn't error, but the server drops your value and treats the row track as `"auto"`. Always write `"auto"` explicitly — it's the only value that survives the round-trip.
+
+### Stacking children inside a container
+
+Because row tracks collapse to `"auto"`, height comes from children, not from the container's `gridTemplateRows`. Two patterns work:
+
+**Side-by-side only** — children share the container's row range, differ by `gridColumn`:
+
+```xml
+<GridContainer elementId="header-row" type="grid"
+               gridColumn="1 / 25" gridRow="1 / 4"
+               gridTemplateColumns="repeat(24, 1fr)" gridTemplateRows="auto">
+  <LayoutElement elementId="kpi-1" gridColumn="1 / 9"  gridRow="1 / 4"/>
+  <LayoutElement elementId="kpi-2" gridColumn="9 / 17" gridRow="1 / 4"/>
+  <LayoutElement elementId="kpi-3" gridColumn="17 / 25" gridRow="1 / 4"/>
+</GridContainer>
+```
+
+**Stacked rows inside one container** — children may have disjoint `gridRow` spans. The server normalizes the container's outer `gridRow` to encompass its children's combined extent (e.g., a container declared `1 / 12` with children spanning `1 / 4` and `4 / 12` reads back as `1 / 12`; declare it generously the first time and let normalization clamp):
+
+```xml
+<GridContainer elementId="header-row" type="grid"
+               gridColumn="1 / 25" gridRow="1 / 12"
+               gridTemplateColumns="repeat(24, 1fr)" gridTemplateRows="auto">
+  <LayoutElement elementId="title"  gridColumn="1 / 25" gridRow="1 / 4"/>
+  <LayoutElement elementId="kpi-1"  gridColumn="1 / 9"  gridRow="4 / 12"/>
+  <LayoutElement elementId="kpi-2"  gridColumn="9 / 17" gridRow="4 / 12"/>
+  <LayoutElement elementId="kpi-3"  gridColumn="17 / 25" gridRow="4 / 12"/>
+</GridContainer>
+```
+
+Use stacked rows when you want a section header / description / banner above a row of charts inside the same container, instead of moving those elements out to the page level.
+
+## Container Elements
+
+A `kind: "container"` element on a page is just a placeholder — its purpose is to be the target of a `<GridContainer>` in the layout XML.
+
+```json
+{ "id": "header-row", "kind": "container" }
+```
+
+The container's role (how elements get laid out inside it, how it relates to siblings) is entirely defined by the matching `<GridContainer elementId="header-row" ...>` in the layout XML.
+
+## After CREATE: IDs Reassign
+
+The server remaps external IDs to internal ones on `POST /v2/workbooks/spec`. **Before any follow-up `PUT` that touches `layout`**, GET the current spec and use the IDs from the readback. `elementId` references in the XML must match exactly (case-sensitive) — a mismatch silently drops the element from the page.
+
+See `example-full.yaml` for a real multi-page layout with grid containers.
