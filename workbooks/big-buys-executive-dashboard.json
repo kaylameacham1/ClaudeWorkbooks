@@ -1,0 +1,234 @@
+{
+  "name": "Big Buys Executive Dashboard",
+  "folderId": "bf6866be-ceec-46ac-ba27-2837df23ec23",
+  "schemaVersion": 1,
+  "pages": [
+    {
+      "id": "page-overview",
+      "name": "Executive Overview",
+      "elements": [
+        {
+          "id": "pos-table",
+          "kind": "table",
+          "name": "POS Data",
+          "source": {
+            "kind": "warehouse-table",
+            "connectionId": "d76009c8-d01a-4c9e-9edb-94a77314c6f7",
+            "path": ["SE_DEMO_DB", "BIG_BUYS", "BIG_BUYS_POS"]
+          },
+          "columns": [
+            { "id": "col-date",           "name": "Date",           "formula": "[BIG_BUYS_POS/DATE]" },
+            { "id": "col-order-num",      "name": "Order Number",   "formula": "[BIG_BUYS_POS/ORDER_NUMBER]" },
+            { "id": "col-quantity",       "name": "Quantity",       "formula": "[BIG_BUYS_POS/QUANTITY]" },
+            { "id": "col-cost",           "name": "Cost",           "formula": "[BIG_BUYS_POS/COST]" },
+            { "id": "col-price",          "name": "Price",          "formula": "[BIG_BUYS_POS/PRICE]" },
+            { "id": "col-product-family", "name": "Product Family", "formula": "[BIG_BUYS_POS/PRODUCT_FAMILY]" },
+            { "id": "col-product-line",   "name": "Product Line",   "formula": "[BIG_BUYS_POS/PRODUCT_LINE]" },
+            { "id": "col-brand",          "name": "Brand",          "formula": "[BIG_BUYS_POS/BRAND]" },
+            { "id": "col-store-region",   "name": "Store Region",   "formula": "[BIG_BUYS_POS/STORE_REGION]" },
+            { "id": "col-store-state",    "name": "Store State",    "formula": "[BIG_BUYS_POS/STORE_STATE]" },
+            { "id": "col-revenue",        "name": "Revenue",        "formula": "[Price] * [Quantity]" },
+            { "id": "col-total-cost",     "name": "Total Cost",     "formula": "[Cost] * [Quantity]" },
+            { "id": "col-profit",         "name": "Profit",         "formula": "[Revenue] - [Total Cost]" }
+          ]
+        },
+        {
+          "kind": "control",
+          "id": "ctrl-date",
+          "controlId": "DateFilter",
+          "name": "Date Range",
+          "controlType": "date-range",
+          "mode": "last",
+          "value": 12,
+          "unit": "month",
+          "includeToday": true,
+          "includeNulls": "when-no-value-is-selected",
+          "filters": [
+            { "source": { "kind": "table", "elementId": "pos-table" }, "columnId": "col-date" }
+          ]
+        },
+        {
+          "kind": "control",
+          "id": "ctrl-region",
+          "controlId": "RegionFilter",
+          "name": "Store Region",
+          "controlType": "list",
+          "mode": "include",
+          "selectionMode": "multiple",
+          "values": [],
+          "source": {
+            "kind": "source",
+            "source": { "kind": "table", "elementId": "pos-table" },
+            "columnId": "col-store-region"
+          },
+          "filters": [
+            { "source": { "kind": "table", "elementId": "pos-table" }, "columnId": "col-store-region" }
+          ]
+        },
+        {
+          "kind": "control",
+          "id": "ctrl-product-family",
+          "controlId": "ProductFamilyFilter",
+          "name": "Product Family",
+          "controlType": "list",
+          "mode": "include",
+          "selectionMode": "multiple",
+          "values": [],
+          "source": {
+            "kind": "source",
+            "source": { "kind": "table", "elementId": "pos-table" },
+            "columnId": "col-product-family"
+          },
+          "filters": [
+            { "source": { "kind": "table", "elementId": "pos-table" }, "columnId": "col-product-family" }
+          ]
+        },
+        {
+          "id": "kpi-revenue",
+          "kind": "kpi-chart",
+          "name": "Total Revenue",
+          "source": { "kind": "table", "elementId": "pos-table" },
+          "columns": [
+            {
+              "id": "kpi-rev-val",
+              "name": "Total Revenue",
+              "formula": "Sum([POS Data/Revenue])",
+              "format": { "kind": "number", "formatString": "$,.0f" }
+            }
+          ],
+          "value": { "id": "kpi-rev-val" }
+        },
+        {
+          "id": "kpi-orders",
+          "kind": "kpi-chart",
+          "name": "Total Orders",
+          "source": { "kind": "table", "elementId": "pos-table" },
+          "columns": [
+            {
+              "id": "kpi-orders-val",
+              "name": "Total Orders",
+              "formula": "CountDistinct([POS Data/Order Number])",
+              "format": { "kind": "number", "formatString": ",.0f" }
+            }
+          ],
+          "value": { "id": "kpi-orders-val" }
+        },
+        {
+          "id": "kpi-aov",
+          "kind": "kpi-chart",
+          "name": "Avg Order Value",
+          "source": { "kind": "table", "elementId": "pos-table" },
+          "columns": [
+            {
+              "id": "kpi-aov-rev",
+              "name": "AOV Revenue",
+              "formula": "Sum([POS Data/Revenue])"
+            },
+            {
+              "id": "kpi-aov-count",
+              "name": "AOV Orders",
+              "formula": "CountDistinct([POS Data/Order Number])"
+            },
+            {
+              "id": "kpi-aov-val",
+              "name": "Avg Order Value",
+              "formula": "[AOV Revenue] / [AOV Orders]",
+              "format": { "kind": "number", "formatString": "$,.2f" }
+            }
+          ],
+          "value": { "id": "kpi-aov-val" }
+        },
+        {
+          "id": "kpi-margin",
+          "kind": "kpi-chart",
+          "name": "Gross Margin",
+          "source": { "kind": "table", "elementId": "pos-table" },
+          "columns": [
+            {
+              "id": "kpi-margin-rev",
+              "name": "Margin Revenue",
+              "formula": "Sum([POS Data/Revenue])"
+            },
+            {
+              "id": "kpi-margin-cost",
+              "name": "Margin Cost",
+              "formula": "Sum([POS Data/Total Cost])"
+            },
+            {
+              "id": "kpi-margin-val",
+              "name": "Gross Margin",
+              "formula": "([Margin Revenue] - [Margin Cost]) / [Margin Revenue]",
+              "format": { "kind": "number", "formatString": ".1%" }
+            }
+          ],
+          "value": { "id": "kpi-margin-val" }
+        },
+        {
+          "id": "chart-trend",
+          "kind": "line-chart",
+          "name": "Revenue by Month",
+          "source": { "kind": "table", "elementId": "pos-table" },
+          "columns": [
+            {
+              "id": "trend-month",
+              "name": "Month",
+              "formula": "DateTrunc(\"month\", [POS Data/Date])",
+              "format": { "kind": "datetime", "formatString": "%b %Y" }
+            },
+            {
+              "id": "trend-revenue",
+              "name": "Revenue",
+              "formula": "Sum([POS Data/Revenue])",
+              "format": { "kind": "number", "formatString": "$,.0f" }
+            }
+          ],
+          "xAxis": { "id": "trend-month", "sort": { "by": "trend-month", "direction": "ascending" } },
+          "yAxis": [{ "id": "trend-revenue" }]
+        },
+        {
+          "id": "chart-region",
+          "kind": "bar-chart",
+          "name": "Revenue by Store Region",
+          "source": { "kind": "table", "elementId": "pos-table" },
+          "columns": [
+            {
+              "id": "region-name",
+              "name": "Region",
+              "formula": "[POS Data/Store Region]"
+            },
+            {
+              "id": "region-revenue",
+              "name": "Revenue",
+              "formula": "Sum([POS Data/Revenue])",
+              "format": { "kind": "number", "formatString": "$,.0f" }
+            }
+          ],
+          "xAxis": { "id": "region-name", "sort": { "by": "region-revenue", "direction": "descending" } },
+          "yAxis": [{ "id": "region-revenue" }],
+          "stacking": "none"
+        },
+        {
+          "id": "chart-family",
+          "kind": "donut-chart",
+          "name": "Revenue by Product Family",
+          "source": { "kind": "table", "elementId": "pos-table" },
+          "columns": [
+            {
+              "id": "family-name",
+              "name": "Family",
+              "formula": "[POS Data/Product Family]"
+            },
+            {
+              "id": "family-revenue",
+              "name": "Revenue",
+              "formula": "Sum([POS Data/Revenue])",
+              "format": { "kind": "number", "formatString": "$,.0f" }
+            }
+          ],
+          "value": { "id": "family-revenue" },
+          "color": { "id": "family-name", "sort": { "by": "family-revenue", "direction": "descending" } }
+        }
+      ]
+    }
+  ]
+}
